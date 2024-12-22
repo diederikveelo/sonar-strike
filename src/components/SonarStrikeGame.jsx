@@ -125,33 +125,19 @@ export default function SonarStrikeGame() {
     joinGame,
     shareBoardDetails,
     fireAt,
-    opponentBoard
+    opponentBoard,
+    isInitialized: isAudioInitialized,
+    error
   } = useGameController();
   
-  // Initialize the game
-  useEffect(() => {
-    initializeGame();
+  const handleInitializeAudio = useCallback(async () => {
+    try {
+      await initializeGame();
+    } catch (err) {
+      console.error('Failed to initialize audio:', err);
+    }
   }, [initializeGame]);
   
-  // Initialize ship positions
-  useEffect(() => {
-    const newPositions = {};
-    const newOrientations = {};
-
-    // Place ships in random order
-    const shuffledShips = [...ships].sort(() => Math.random() - 0.5);
-
-    shuffledShips.forEach(ship => {
-      const { row, col, isVertical } = getRandomPosition(ship, newPositions, newOrientations);
-      newPositions[ship.id] = { row, col };
-      newOrientations[ship.id] = isVertical;
-    });
-  
-    setShipPositions(newPositions);
-    setShipOrientations(newOrientations);
-    setIsInitialized(true);
-  }, []);
-
   const handleShipDrop = useCallback((shipId, row, col) => {
     setShipPositions(prev => {
       const newPositions = { ...prev };
@@ -182,10 +168,29 @@ export default function SonarStrikeGame() {
     }
   }, [gameState, fireAt]);
   
+  // Initialize ship positions
+  useEffect(() => {
+    const newPositions = {};
+    const newOrientations = {};
+
+    // Place ships in random order
+    const shuffledShips = [...ships].sort(() => Math.random() - 0.5);
+
+    shuffledShips.forEach(ship => {
+      const { row, col, isVertical } = getRandomPosition(ship, newPositions, newOrientations);
+      newPositions[ship.id] = { row, col };
+      newOrientations[ship.id] = isVertical;
+    });
+  
+    setShipPositions(newPositions);
+    setShipOrientations(newOrientations);
+    setIsInitialized(true);
+  }, []);
+  
   if (!isInitialized) {
     return <div>Loading...</div>;
   }
-
+  
   return (
     <GameContainer>
       <GameControls
@@ -194,9 +199,11 @@ export default function SonarStrikeGame() {
         onStartGame={startNewGame}
         onJoinGame={joinGame}
         onReadyToPlay={handleReadyToPlay}
+        isAudioInitialized={isAudioInitialized}
+        onInitializeAudio={handleInitializeAudio}
+        error={error}
       />
       <BoardsContainer>
-
         <BoardSection>
           <Grid 
             board={opponentBoard || createEmptyBoard()}
