@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import styled from 'styled-components';
 import Grid from './Grid';
+import GameControls from './GameControls';
+import { useGameController } from '../hooks/useGameController';
 
 const GameContainer = styled.div`
   display: flex;
@@ -10,8 +12,17 @@ const GameContainer = styled.div`
   padding: 20px;
 `;
 
+const BoardsContainer = styled.div`
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+  flex-direction: column;
+`;
+
 const BoardSection = styled.div`
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const ships = [
@@ -101,11 +112,28 @@ const getRandomPosition = (ship, positions, orientations) => {
 
 export default function SonarStrikeGame() {
   const [playerBoard, setPlayerBoard] = useState(createEmptyBoard());
-  const [opponentBoard, setOpponentBoard] = useState(createEmptyBoard());
   const [shipPositions, setShipPositions] = useState({});
   const [shipOrientations, setShipOrientations] = useState({});
   const [isInitialized, setIsInitialized] = useState(false);
 
+  const {
+    gameState,
+    gameId,
+    isHost,
+    initialize: initializeGame,
+    startNewGame,
+    joinGame,
+    shareBoardDetails,
+    fireAt,
+    opponentBoard
+  } = useGameController();
+  
+  // Initialize the game
+  useEffect(() => {
+    initializeGame();
+  }, [initializeGame]);
+  
+  // Initialize ship positions
   useEffect(() => {
     const newPositions = {};
     const newOrientations = {};
@@ -137,33 +165,61 @@ export default function SonarStrikeGame() {
     });
   }, [shipOrientations]);
   
+  const handleReadyToPlay = useCallback(() => {
+    // Convert ship positions to the format expected by the game controller
+    const formattedShips = ships.map(ship => ({
+      length: ship.length,
+      isVertical: shipOrientations[ship.id],
+      position: shipPositions[ship.id]
+    }));
+    
+    shareBoardDetails(formattedShips);
+  }, [shipPositions, shipOrientations, shareBoardDetails]);
+
+  const handleCellClick = useCallback((row, col) => {
+    if (gameState === 'PLAYING') {
+      fireAt(col, row);
+    }
+  }, [gameState, fireAt]);
+  
   if (!isInitialized) {
     return <div>Loading...</div>;
   }
 
   return (
     <GameContainer>
-      <BoardSection>
-        <Grid 
-          board={opponentBoard}
-          ships={[]}
-          shipPositions={{}}
-          isPlayerBoard={false}
-        />
-      </BoardSection>
+      <GameControls
+        gameState={gameState}
+        gameId={gameId}
+        onStartGame={startNewGame}
+        onJoinGame={joinGame}
+        onReadyToPlay={handleReadyToPlay}
+      />
+      <BoardsContainer>
 
-      <BoardSection>
-        <Grid 
-          board={playerBoard}
-          ships={ships}
-          shipPositions={shipPositions}
-          shipOrientations={shipOrientations}
-          onDrop={handleShipDrop}
-          isPlayerBoard={true}
-          isValidPosition={(positions, ship, row, col, isVertical, movingShipId) => 
-            isValidPosition(positions, shipOrientations, ship, row, col, isVertical, movingShipId)}
-        />
-      </BoardSection>
+        <BoardSection>
+          <Grid 
+            board={opponentBoard || createEmptyBoard()}
+            ships={[]}
+            shipPositions={{}}
+            isPlayerBoard={false}
+            onCellClick={handleCellClick}
+          />
+        </BoardSection>
+
+        <BoardSection>
+          <Grid 
+            board={playerBoard}
+            ships={ships}
+            shipPositions={shipPositions}
+            shipOrientations={shipOrientations}
+            onDrop={handleShipDrop}
+            isPlayerBoard={true}
+            isValidPosition={(positions, ship, row, col, isVertical, movingShipId) => 
+              isValidPosition(positions, shipOrientations, ship, row, col, isVertical, movingShipId)}
+          />
+        </BoardSection>
+      </BoardsContainer>
     </GameContainer>
   );
 }
