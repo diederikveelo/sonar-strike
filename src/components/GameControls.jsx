@@ -3,7 +3,6 @@ import styled from 'styled-components';
 const ControlsContainer = styled.div`
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
   flex-direction: column;
   align-items: center;
 `;
@@ -28,10 +27,8 @@ const Button = styled.button`
 `;
 
 const GameStatus = styled.div`
-  padding: 10px;
   background-color: #f8f9fa;
   border-radius: 4px;
-  margin-bottom: 10px;
   text-align: center;
 `;
 
@@ -54,7 +51,7 @@ export default function GameControls({
 }) {
   const getStatusMessage = () => {
     switch (gameState) {
-      case 'SETUP': return 'Place your ships and choose to host or join';
+      case 'SETUP': return 'Place your ships and click Ready';
       case 'READY': return 'Looking for players...';
       case 'JOINING': return 'Joining game...'
       case 'SHARING_BOARD': return 'Sharing game details...';
@@ -66,11 +63,11 @@ export default function GameControls({
   
   return (
     <ControlsContainer>
-      <ConnectionStatus $isConnected={isAudioInitialized}>
+      {/* <ConnectionStatus $isConnected={isAudioInitialized}>
         {isAudioInitialized 
           ? "Audio Connection Ready" 
           : "Audio Connection Not Initialized"}
-      </ConnectionStatus>
+      </ConnectionStatus> */}
 
       {error && (
         <ConnectionStatus $isConnected={false}>
@@ -82,22 +79,24 @@ export default function GameControls({
         {getStatusMessage()}
         {gameId && <span> | Game: {gameId}</span>}
       </GameStatus>
-      
-      <ButtonGroup>
-        {!isAudioInitialized ? (
-          <Button 
-            $primary 
-            onClick={onInitializeAudio}
-          >
-            Initialize Audio Connection
-          </Button>
-        ) : (
-          gameState === 'SETUP' &&
+
+      {(!isAudioInitialized || gameState === 'SETUP') && (
+        <ButtonGroup>
+          {!isAudioInitialized ? (
+            <Button
+              $primary
+              onClick={onInitializeAudio}
+            >
+              Initialize Audio Connection
+            </Button>
+          ) : (
+            gameState === 'SETUP' &&
             <>
-              <Button onClick={onStartGame}>Ready!</Button>
+              <Button onClick={onStartGame}>Ready</Button>
             </>
-        )}
-      </ButtonGroup>
+          )}
+        </ButtonGroup>
+      )}
     </ControlsContainer>
   );
 }

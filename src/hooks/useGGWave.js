@@ -27,6 +27,7 @@ export function useGGWave() {
       const parameters = ggwave.getDefaultParameters();
       parameters.sampleRateInp = context.sampleRate;
       parameters.sampleRateOut = context.sampleRate;
+      
       const ggwaveInstance = ggwave.init(parameters);
       
       // Get microphone access
@@ -41,7 +42,7 @@ export function useGGWave() {
       setGGWaveIsInitialized(true);
       setError(null);
 
-      console.log('GGWave initialized successfully');
+      console.log('GGWave initialized successfully', ggwave, ggwaveInstance);
     } catch (err) {
       console.error('Initialization error:', err);
       setError(err.message);
@@ -123,7 +124,7 @@ export function useGGWave() {
     }
  
     try {
-      const waveform = instance.ggwave.encode(instance.instance, message, instance.ggwave.ProtocolId.GGWAVE_PROTOCOL_AUDIBLE_FAST, 10);
+      const waveform = instance.ggwave.encode(instance.instance, message, instance.ggwave.ProtocolId.GGWAVE_PROTOCOL_AUDIBLE_FASTEST, 10);
       
       if (!waveform) {
         throw new Error('Failed to encode message');

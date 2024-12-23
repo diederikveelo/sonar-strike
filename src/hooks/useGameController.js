@@ -208,7 +208,11 @@ export function useGameController() {
   const handleMessage = useCallback((message) => {
     try {
 
-      if (!message.startsWith('U')) return;
+      if (!message.startsWith('U')) {
+        console.error("discarting message. Missing userId", message);
+        return;
+      }
+
       const senderUserId = message.substring(1, 3);
       const messageContent = message.substring(3);
 
@@ -293,18 +297,17 @@ export function useGameController() {
               return false;
             });
     
-            console.log("isHit", x, y, isHit);
+            console.log("Shot Fired", x, y, isHit);
             
             // Add shot to received shots
             setShotsReceived(prev => new Set(prev).add(`${x},${y}`));
-            
-            // Send result back
-            // sendMessageWithUserId(`R${gameId}${x}${y}${isHit ? 'H' : 'M'}`);
             
             // Set turn to player
             setIsMyTurn(true);
           }
           break;
+        default:
+          console.error("failed to handle message", message)
       }
     } catch (err) {
       setError('Error processing message: ' + err.message);

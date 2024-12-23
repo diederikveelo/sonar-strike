@@ -14,7 +14,7 @@ const GameContainer = styled.div`
 
 const BoardsContainer = styled.div`
   display: flex;
-  gap: 40px;
+  gap: 20px;
   align-items: flex-start;
   flex-direction: column;
 `;

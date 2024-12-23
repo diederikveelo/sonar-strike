@@ -23,7 +23,7 @@ const Cell = styled.div`
     if (props.$isHighlighted) return '#90EE90';
     if (props.$isHit) return '#FF6B6B';
     if (props.$isMiss) return '#A8D8EA';
-    if (props.content === 'ship') return '#EEE';
+    // if (props.content === 'ship') return '#EEE';
     return '#fff';
   }};
   outline: 1px solid #ccc;
