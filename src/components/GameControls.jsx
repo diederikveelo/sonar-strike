@@ -48,8 +48,6 @@ export default function GameControls({
   gameState, 
   gameId, 
   onStartGame, 
-  onJoinGame, 
-  onReadyToPlay,
   isAudioInitialized,
   onInitializeAudio,
   error
@@ -82,7 +80,7 @@ export default function GameControls({
 
       <GameStatus>
         {getStatusMessage()}
-        {gameId && <span> | Game ID: {gameId}</span>}
+        {gameId && <span> | Game: {gameId}</span>}
       </GameStatus>
       
       <ButtonGroup>

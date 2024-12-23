@@ -4,7 +4,7 @@ export function useGGWave() {
   const [instance, setInstance] = useState(null);
   const [audioContext, setAudioContext] = useState(null);
   const [analyzer, setAnalyzer] = useState(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isGGWaveInitialized, setGGWaveIsInitialized] = useState(false);
   const [error, setError] = useState(null);
 
   const convertTypedArray = (src, type) => {
@@ -38,7 +38,7 @@ export function useGGWave() {
       setInstance({ ggwave, instance: ggwaveInstance });
       setAudioContext(context);
       setAnalyzer(analyzerNode);
-      setIsInitialized(true);
+      setGGWaveIsInitialized(true);
       setError(null);
 
       console.log('GGWave initialized successfully');
@@ -129,8 +129,6 @@ export function useGGWave() {
         throw new Error('Failed to encode message');
       }
       
-      console.log("message", message, audioContext.sampleRate);
-      
       // play audio
       const buffer = convertTypedArray(waveform, Float32Array);
       const audioBuffer = audioContext.createBuffer(1, buffer.length, audioContext.sampleRate);
@@ -156,7 +154,7 @@ export function useGGWave() {
     setInstance(null);
     setAudioContext(null);
     setAnalyzer(null);
-    setIsInitialized(false);
+    setGGWaveIsInitialized(false);
   }, [audioContext, instance]);
 
   return {
@@ -164,7 +162,7 @@ export function useGGWave() {
     startListening,
     initialize,
     cleanup,
-    isInitialized,
+    isGGWaveInitialized,
     error
   };
 }

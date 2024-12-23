@@ -13,20 +13,41 @@ const GridContainer = styled.div`
   outline: 1px solid #999;
   width: fit-content;
   height: fit-content;
+  cursor: ${props => (!props.$isPlayerBoard && props.$isMyTurn) ? 'crosshair' : 'default'};
 `;
 
 const Cell = styled.div`
   width: 30px;
   height: 30px;
-  background-color: ${props => props.$isHighlighted ? '#90EE90' : '#fff'};
+  background-color: ${props => {
+    if (props.$isHighlighted) return '#90EE90';
+    if (props.content === 'ship') return '#EEE';
+    if (props.content === 'hit') return '#FF6B6B';
+    if (props.content === 'miss') return '#A8D8EA';
+    return '#fff';
+  }};
   outline: 1px solid #ccc;
 `;
 
-const Grid = memo(function Grid({ board, ships, onDrop, isPlayerBoard, isValidPosition }) {
+const Grid = memo(function Grid({
+  board,
+  ships,
+  onDrop,
+  isPlayerBoard,
+  isValidPosition,
+  onCellClick,
+  isMyTurn
+}) {
   const [highlightedCells, setHighlightedCells] = useState([]);
   const [draggedShipId, setDraggedShipId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
+  const handleCellClick = useCallback((row, col) => {
+    if (!isPlayerBoard && isMyTurn && onCellClick) {
+      onCellClick(row, col);
+    }
+  }, [isPlayerBoard, isMyTurn, onCellClick]);
+  
   const getGridPosition = useCallback((e, offsetX = 0, offsetY = 0) => {
     const gridRect = e.currentTarget.getBoundingClientRect();
     const mouseX = e.clientX;
@@ -99,12 +120,16 @@ const Grid = memo(function Grid({ board, ships, onDrop, isPlayerBoard, isValidPo
       onDragOver={handleDragOver}
       onDrop={handleDrop}
       onDragLeave={() => setHighlightedCells([])}
+      $isPlayerBoard={isPlayerBoard}
+      $isMyTurn={isMyTurn}
     >
       {Array.isArray(board) && board.map((row, i) =>
         Array.isArray(row) && row.map((cell, j) => (
           <Cell
             key={`${i}-${j}`}
+            content={cell}
             $isHighlighted={highlightedCells.some(cell => cell.row === i && cell.col === j)}
+            onClick={() => handleCellClick(i, j)}
           />
         ))
       )}

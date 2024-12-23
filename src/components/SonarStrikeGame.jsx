@@ -38,13 +38,12 @@ export default function SonarStrikeGame() {
     joinGame,
     fireAt,
     opponentBoard,
-    isInitialized: isAudioInitialized,
+    isGGWaveInitialized: isAudioInitialized,
     error,
     ships,
-    shipPositions,
-    shipOrientations,
     updateShipPosition,
-    isValidPosition
+    isValidPosition,
+    isMyTurn
   } = useGameController();
   
   const handleInitializeAudio = useCallback(async () => {
@@ -59,27 +58,12 @@ export default function SonarStrikeGame() {
     updateShipPosition(shipId, { row, col }, isVertical);
   }, [updateShipPosition]);
   
-  const handleReadyToPlay = useCallback(() => {
-    try {
-      // Verify all ships are placed
-      const allShipsPlaced = ships.every(ship => 
-        shipPositions[ship.id] && shipOrientations[ship.id] !== undefined
-      );
-  
-      if (!allShipsPlaced) {
-        throw new Error('Please place all ships before starting');
-      }
-  
-    } catch (err) {
-      console.error('Ready to play error:', err);
-    }
-  }, [ships, shipPositions, shipOrientations]);
-
   const handleCellClick = useCallback((row, col) => {
-    if (gameState === 'PLAYING') {
+    console.log("handleCellClick", gameState, isMyTurn);
+    if (gameState === 'PLAYING' && isMyTurn) {
       fireAt(col, row);
     }
-  }, [gameState, fireAt]);
+  }, [gameState, fireAt, isMyTurn]);
   
   return (
     <GameContainer>
@@ -88,7 +72,6 @@ export default function SonarStrikeGame() {
         gameId={gameId}
         onStartGame={startNewGame}
         onJoinGame={joinGame}
-        onReadyToPlay={handleReadyToPlay}
         isAudioInitialized={isAudioInitialized}
         onInitializeAudio={handleInitializeAudio}
         error={error}
@@ -98,9 +81,9 @@ export default function SonarStrikeGame() {
           <Grid 
             board={opponentBoard || createEmptyBoard()}
             ships={[]}
-            shipPositions={{}}
             isPlayerBoard={false}
             onCellClick={handleCellClick}
+            isMyTurn={isMyTurn}
           />
         </BoardSection>
 
@@ -108,8 +91,6 @@ export default function SonarStrikeGame() {
           <Grid 
             board={playerBoard}
             ships={ships}
-            shipPositions={shipPositions}
-            shipOrientations={shipOrientations}
             onDrop={handleShipDrop}
             isPlayerBoard={true}
             isValidPosition={isValidPosition}

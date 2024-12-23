@@ -28,13 +28,23 @@ export function useGameController() {
   const [opponentBoard, setOpponentBoard] = useState(null);
   const [error, setError] = useState(null);
   const [broadcastInterval, setBroadcastInterval] = useState(null);
+  const [isMyTurn, setIsMyTurn] = useState(false);
+  const [shotsFired, setShotsFired] = useState(new Set());
+  const [shotsReceived, setShotsReceived] = useState(new Set());
 
+  const CellState = {
+    EMPTY: null,
+    SHIP: 'ship',
+    HIT: 'hit',
+    MISS: 'miss'
+  };
+  
   // GGWave hook
   const { 
     sendMessage, 
     startListening, 
     initialize, 
-    isInitialized,
+    isGGWaveInitialized,
     error: ggwaveError
   } = useGGWave();
   
@@ -137,21 +147,29 @@ export function useGameController() {
   
   // Decode board details from a string
   const decodeBoardDetails = useCallback((boardString) => {
-    const ships = [];
+    // Create empty 10x10 board
+    const board = Array(10).fill(null).map(() => Array(10).fill(null));
+    
     let i = 0;
     while (i < boardString.length) {
       const isVertical = boardString[i] === 'V';
       const length = parseInt(boardString[i + 1]);
       const col = parseInt(boardString[i + 2]);
       const row = parseInt(boardString[i + 3]);
-      ships.push({
-        isVertical,
-        length,
-        position: { col, row }
-      });
+      
+      // Place ship on board
+      for (let j = 0; j < length; j++) {
+        if (isVertical) {
+          board[row + j][col] = 'ship';
+        } else {
+          board[row][col + j] = 'ship';
+        }
+      }
+      
       i += 4;
     }
-    return ships;
+    
+    return board;
   }, []);
 
   // update ship position
@@ -198,10 +216,10 @@ export function useGameController() {
       if (senderUserId === userId) return;
 
       const type = messageContent.charAt(0);
-      console.log('Received message:', messageContent);
+      console.log('Received message:', message, type, messageContent, gameState);
 
       switch (type) {
-        case 'G': // Received a game broadcast message
+        case 'G': // game broadcast message received
           if (gameState === GameState.READY) {
 
             // clear our own broadcast
@@ -221,7 +239,7 @@ export function useGameController() {
           }
           break;
   
-        case 'J': // Join game
+        case 'J': // Join game received
           if (gameState === GameState.READY && 
               messageContent.substring(1, 3) === gameId) {
 
@@ -238,36 +256,69 @@ export function useGameController() {
           }
           break;
   
-        case 'B': // Board details
+        case 'B': // Board details received
           if (gameId === messageContent.substring(1, 3)) {
             const boardDetails = messageContent.substring(3);
             const decodedBoard = decodeBoardDetails(boardDetails);
+            console.log("decoded board:", decodedBoard);
             setOpponentBoard(decodedBoard);
 
             // share our board in response
             if (gameState !== GameState.SHARING_BOARD) {
               shareBoardDetails();
+            } else {
+              setIsMyTurn(true);
             }
             
             setGameState(GameState.PLAYING);
+             
             console.log('Received board details, starting game');
           }
           break;
   
-        case 'F': // Fire command
+        case 'F': // Fire command received
           if (gameState === GameState.PLAYING && 
-              message.substring(1, 3) === gameId) {
+              messageContent.substring(1, 3) === gameId) {
             const x = parseInt(messageContent.charAt(3));
             const y = parseInt(messageContent.charAt(4));
-            // Handle incoming fire command
-            console.log('Received fire at:', x, y);
+
+            const isHit = ships.some(ship => {
+              if (!ship.position) return false;
+              
+              for (let i = 0; i < ship.length; i++) {
+                const shipX = ship.isVertical ? ship.position.col : ship.position.col + i;
+                const shipY = ship.isVertical ? ship.position.row + i : ship.position.row;
+                if (shipX === x && shipY === y) return true;
+              }
+              return false;
+            });
+    
+            console.log("isHit", isHit);
+            
+            // Add shot to received shots
+            setShotsReceived(prev => new Set(prev).add(`${x},${y}`));
+            
+            // Send result back
+            // sendMessageWithUserId(`R${gameId}${x}${y}${isHit ? 'H' : 'M'}`);
+            
+            // Set turn to player
+            setIsMyTurn(true);
           }
           break;
       }
     } catch (err) {
       setError('Error processing message: ' + err.message);
     }
-  }, [gameState, gameId, sendMessageWithUserId, decodeBoardDetails, broadcastInterval, shareBoardDetails, userId]);
+  }, [
+    gameState,
+    gameId,
+    sendMessageWithUserId,
+    decodeBoardDetails,
+    broadcastInterval,
+    shareBoardDetails,
+    ships,
+    userId
+  ]);
   
   // Update local error state when ggwave error changes
   useEffect(() => {
@@ -278,11 +329,11 @@ export function useGameController() {
 
   // Initialize message listening
   useEffect(() => {
-    if (isInitialized) {
+    if (isGGWaveInitialized) {
       console.log("initialised, start listening...");
       return startListening(handleMessage);
     }
-  }, [isInitialized, startListening, handleMessage]);
+  }, [isGGWaveInitialized, startListening, handleMessage]);
   
   // Clean up the broadcast interval on unmount
   useEffect(() => {
@@ -334,13 +385,17 @@ export function useGameController() {
   // Fire at coordinates
   const fireAt = useCallback((x, y) => {
     try {
-      if (gameId) {
-        sendMessageWithUserId(`F${gameId}${x}${y}`);
+      // Check if it's our turn and we haven't fired at this location
+      if (!isMyTurn || shotsFired.has(`${x},${y}`)) {
+        return;
       }
+      sendMessageWithUserId(`F${gameId}${x}${y}`);
+      setShotsFired(prev => new Set(prev).add(`${x},${y}`));
+      setIsMyTurn(false);
     } catch (err) {
       setError('Failed to fire: ' + err.message);
     }
-  }, [gameId, sendMessageWithUserId]);
+  }, [gameId, sendMessageWithUserId, isMyTurn, shotsFired]);
 
   return {
     gameState,
@@ -349,11 +404,12 @@ export function useGameController() {
     startNewGame,
     fireAt,
     opponentBoard,
-    isInitialized,
+    isGGWaveInitialized,
     error,
     ships,
     updateShipPosition,
     isValidPosition: (ship, row, col, isVertical, movingShipId) => 
       isValidPosition(ships, ship, row, col, isVertical, movingShipId),
+    isMyTurn
   };
 }
