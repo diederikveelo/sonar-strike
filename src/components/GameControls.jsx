@@ -54,6 +54,17 @@ export default function GameControls({
   onInitializeAudio,
   error
 }) {
+  const getStatusMessage = () => {
+    switch (gameState) {
+      case 'SETUP': return 'Place your ships and choose to host or join';
+      case 'WAITING_FOR_OPPONENT': return 'Waiting for opponent...';
+      case 'SHARING_BOARD': return 'Opponent found! Sharing board details...';
+      case 'WAITING_FOR_BOARD': return 'Waiting for opponent\'s board...';
+      case 'PLAYING': return 'Game in progress';
+      default: return gameState;
+    }
+  };
+  
   return (
     <ControlsContainer>
       <ConnectionStatus $isConnected={isAudioInitialized}>
@@ -69,7 +80,7 @@ export default function GameControls({
       )}
 
       <GameStatus>
-        Status: {gameState}
+        {getStatusMessage()}
         {gameId && <span> | Game ID: {gameId}</span>}
       </GameStatus>
       
@@ -82,28 +93,14 @@ export default function GameControls({
             Initialize Audio Connection
           </Button>
         ) : (
-          <>
-            <Button 
-              onClick={onStartGame}
-              disabled={gameState !== 'SETUP'}
-            >
-              Host Game
-            </Button>
-            
-            <Button 
-              onClick={onJoinGame}
-              disabled={gameState !== 'SETUP'}
-            >
-              Join Game
-            </Button>
-            
-            <Button 
-              onClick={onReadyToPlay}
-              disabled={gameState !== 'SETUP'}
-            >
-              Ready
-            </Button>
-          </>
+          gameState === 'SETUP' ? (
+            <>
+              <Button onClick={onStartGame}>Host Game</Button>
+              <Button onClick={onJoinGame}>Join Game</Button>
+            </>
+          ) : gameState === 'SHARING_BOARD' && (
+            <Button onClick={onReadyToPlay}>Ready</Button>
+          )
         )}
       </ButtonGroup>
     </ControlsContainer>
