@@ -21,7 +21,7 @@ const getRandomId = (count) => {
   return id;
 };
 
-export function useGameController() {
+export function useGameController(props) {
   const [gameState, setGameState] = useState(GameState.SETUP);
   const [gameId, setGameId] = useState(null);
   const [userId, setUserId] = useState(() => getRandomId(2));
@@ -31,6 +31,7 @@ export function useGameController() {
   const [isMyTurn, setIsMyTurn] = useState(false);
   const [shotsFired, setShotsFired] = useState(new Set());
   const [shotsReceived, setShotsReceived] = useState(new Set());
+  const { onMessage } = props;
 
   const CellState = {
     EMPTY: null,
@@ -56,6 +57,11 @@ export function useGameController() {
     { id: 5, name: 'Destroyer', length: 2, position: null, isVertical: true }
   ]);
 
+  const handleError = useCallback((errorMessage) => {
+    setError(errorMessage);
+    onMessage?.(errorMessage, 'error');
+  }, [onMessage]);
+  
   const sendMessageWithUserId = useCallback((message) => {
     if (!userId) {
       console.error('No user ID set');
@@ -200,9 +206,9 @@ export function useGameController() {
       const boardDetails = encodeBoardDetails();
       sendMessageWithUserId(`B${gameId}${boardDetails}`);
     } catch (err) {
-      setError('Failed to share board details: ' + err.message);
+      handleError('Failed to share board details: ' + err.message);
     }
-  }, [ships, gameId, sendMessageWithUserId, encodeBoardDetails]);
+  }, [ships, gameId, sendMessageWithUserId, encodeBoardDetails, handleError]);
   
   // Handle incoming messages
   const handleMessage = useCallback((message) => {
@@ -310,7 +316,7 @@ export function useGameController() {
           console.error("failed to handle message", message)
       }
     } catch (err) {
-      setError('Error processing message: ' + err.message);
+      handleError('Error processing message: ' + err.message);
     }
   }, [
     gameState,
@@ -320,15 +326,16 @@ export function useGameController() {
     broadcastInterval,
     shareBoardDetails,
     ships,
-    userId
+    userId,
+    handleError
   ]);
   
   // Update local error state when ggwave error changes
   useEffect(() => {
     if (ggwaveError) {
-      setError(ggwaveError);
+      handleError(ggwaveError);
     }
-  }, [ggwaveError]);
+  }, [ggwaveError, handleError]);
 
   // Initialize message listening
   useEffect(() => {
@@ -381,9 +388,9 @@ export function useGameController() {
       
       setBroadcastInterval(intervalId);
     } catch (err) {
-      setError('Failed to start game: ' + err.message);
+      handleError('Failed to start game: ' + err.message);
     }
-  }, [sendMessageWithUserId]);
+  }, [sendMessageWithUserId, handleError]);
 
   // Fire at coordinates
   const fireAt = useCallback((x, y) => {
@@ -399,7 +406,7 @@ export function useGameController() {
       setError('Failed to fire: ' + err.message);
     }
   }, [gameId, sendMessageWithUserId, isMyTurn, shotsFired]);
-
+  
   return {
     gameState,
     gameId,

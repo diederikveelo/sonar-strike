@@ -1,7 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 import Grid from './Grid';
 import GameControls from './GameControls';
+import MessageLog from './MessageLog';
 import { useGameController } from '../hooks/useGameController';
 
 const GameContainer = styled.div`
@@ -29,7 +30,12 @@ const createEmptyBoard = () => Array(10).fill(null).map(() => Array(10).fill(nul
 
 export default function SonarStrikeGame() {
   const [playerBoard, setPlayerBoard] = useState(createEmptyBoard());
+  const [messages, setMessages] = useState([]);
 
+  const addMessage = useCallback((text, type = 'info') => {
+    setMessages(prev => [...prev, { text, type, timestamp: Date.now() }]);
+  }, []);
+  
   const {
     gameState,
     gameId,
@@ -46,7 +52,9 @@ export default function SonarStrikeGame() {
     isMyTurn,
     shotsFired,
     shotsReceived
-  } = useGameController();
+  } = useGameController({ 
+      onMessage: addMessage 
+    });
   
   const handleInitializeAudio = useCallback(async () => {
     try {
@@ -66,7 +74,19 @@ export default function SonarStrikeGame() {
       fireAt(col, row);
     }
   }, [gameState, fireAt, isMyTurn]);
-  
+
+  // Monitor error changes
+  useEffect(() => {
+    if (error) {
+      addMessage(error, 'error');
+    }
+  }, [error, addMessage]);
+
+  // Monitor game state changes
+  useEffect(() => {
+    addMessage(`Game state changed to: ${gameState}`);
+  }, [gameState, addMessage]);
+
   return (
     <GameContainer>
       <GameControls
@@ -101,6 +121,7 @@ export default function SonarStrikeGame() {
           />
         </BoardSection>
       </BoardsContainer>
+      <MessageLog messages={messages} />
     </GameContainer>
   );
 }
