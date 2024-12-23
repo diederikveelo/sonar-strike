@@ -22,7 +22,7 @@ const Cell = styled.div`
   outline: 1px solid #ccc;
 `;
 
-const Grid = memo(function Grid({ board, ships, shipPositions, shipOrientations, onDrop, isPlayerBoard, isValidPosition }) {
+const Grid = memo(function Grid({ board, ships, onDrop, isPlayerBoard, isValidPosition }) {
   const [highlightedCells, setHighlightedCells] = useState([]);
   const [draggedShipId, setDraggedShipId] = useState(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -46,26 +46,24 @@ const Grid = memo(function Grid({ board, ships, shipPositions, shipOrientations,
   const handleDragOver = useCallback((e) => {
     e.preventDefault();
     if (!isPlayerBoard || !draggedShipId) return;
-
+  
     const ship = ships.find(s => s.id === draggedShipId);
-    const isVertical = shipOrientations[draggedShipId];
-    
     const { row, col } = getGridPosition(e, dragOffset.x, dragOffset.y);
-
-    // Only highlight cells if the position is valid
-    if (isValidPosition(shipPositions, shipOrientations, ship, row, col, isVertical, draggedShipId)) {
+  
+    // Updated isValidPosition call
+    if (isValidPosition(ship, row, col, ship.isVertical, draggedShipId)) {
       const newHighlightedCells = [];
       for (let i = 0; i < ship.length; i++) {
-        const highlightRow = isVertical ? row + i : row;
-        const highlightCol = isVertical ? col : col + i;
+        const highlightRow = ship.isVertical ? row + i : row;
+        const highlightCol = ship.isVertical ? col : col + i;
         newHighlightedCells.push({ row: highlightRow, col: highlightCol });
       }
       setHighlightedCells(newHighlightedCells);
     } else {
       setHighlightedCells([]); // Clear highlights if position is invalid
     }
-  }, [isPlayerBoard, draggedShipId, ships, shipPositions, shipOrientations, dragOffset, isValidPosition, getGridPosition]);
-  
+  }, [isPlayerBoard, draggedShipId, ships, dragOffset, isValidPosition, getGridPosition]);
+
   const handleDragStart = useCallback((shipId, offsetX, offsetY) => {
     setDraggedShipId(shipId);
     setDragOffset({ x: offsetX, y: offsetY });
@@ -80,17 +78,21 @@ const Grid = memo(function Grid({ board, ships, shipPositions, shipOrientations,
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     if (!isPlayerBoard) return;
-
+  
     const shipData = JSON.parse(e.dataTransfer.getData('shipData'));
     const { offsetX, offsetY } = shipData;
     
     const { row, col } = getGridPosition(e, offsetX, offsetY);
     
-    onDrop(shipData.shipId, row, col);
+    // Find the ship to get its current orientation
+    const ship = ships.find(s => s.id === shipData.shipId);
+    
+    // Pass the current orientation along with the position
+    onDrop(shipData.shipId, row, col, ship.isVertical);
     setHighlightedCells([]);
     setDraggedShipId(null);
     setDragOffset({ x: 0, y: 0 });
-  }, [isPlayerBoard, onDrop, getGridPosition]);
+  }, [isPlayerBoard, onDrop, getGridPosition, ships]);
   
   return (
     <GridContainer
@@ -98,8 +100,8 @@ const Grid = memo(function Grid({ board, ships, shipPositions, shipOrientations,
       onDrop={handleDrop}
       onDragLeave={() => setHighlightedCells([])}
     >
-      {board.map((row, i) =>
-        row.map((cell, j) => (
+      {Array.isArray(board) && board.map((row, i) =>
+        Array.isArray(row) && row.map((cell, j) => (
           <Cell
             key={`${i}-${j}`}
             $isHighlighted={highlightedCells.some(cell => cell.row === i && cell.col === j)}
@@ -107,11 +109,12 @@ const Grid = memo(function Grid({ board, ships, shipPositions, shipOrientations,
         ))
       )}
       {isPlayerBoard && ships.map(ship => (
+        ship.position && 
         <Ship
           key={ship.id}
           ship={ship}
-          position={shipPositions[ship.id]}
-          isVertical={shipOrientations[ship.id]}
+          position={ship.position}
+          isVertical={ship.isVertical}
           onDragStart={(offsetX, offsetY) => handleDragStart(ship.id, offsetX, offsetY)}
           onDragEnd={handleDragEnd}
         />

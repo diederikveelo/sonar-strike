@@ -57,10 +57,11 @@ export default function GameControls({
   const getStatusMessage = () => {
     switch (gameState) {
       case 'SETUP': return 'Place your ships and choose to host or join';
-      case 'WAITING_FOR_OPPONENT': return 'Waiting for opponent...';
-      case 'SHARING_BOARD': return 'Opponent found! Sharing board details...';
-      case 'WAITING_FOR_BOARD': return 'Waiting for opponent\'s board...';
-      case 'PLAYING': return 'Game in progress';
+      case 'READY': return 'Looking for players...';
+      case 'JOINING': return 'Joining game...'
+      case 'SHARING_BOARD': return 'Sharing game details...';
+      case 'WAITING_FOR_BOARD': return 'Waiting for game details...';
+      case 'PLAYING': return 'Game started';
       default: return gameState;
     }
   };
@@ -93,14 +94,10 @@ export default function GameControls({
             Initialize Audio Connection
           </Button>
         ) : (
-          gameState === 'SETUP' ? (
+          gameState === 'SETUP' &&
             <>
-              <Button onClick={onStartGame}>Host Game</Button>
-              <Button onClick={onJoinGame}>Join Game</Button>
+              <Button onClick={onStartGame}>Ready!</Button>
             </>
-          ) : gameState === 'SHARING_BOARD' && (
-            <Button onClick={onReadyToPlay}>Ready</Button>
-          )
         )}
       </ButtonGroup>
     </ControlsContainer>
