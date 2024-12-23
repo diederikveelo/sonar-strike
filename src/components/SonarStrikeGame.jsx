@@ -43,7 +43,9 @@ export default function SonarStrikeGame() {
     ships,
     updateShipPosition,
     isValidPosition,
-    isMyTurn
+    isMyTurn,
+    shotsFired,
+    shotsReceived
   } = useGameController();
   
   const handleInitializeAudio = useCallback(async () => {
@@ -84,6 +86,7 @@ export default function SonarStrikeGame() {
             isPlayerBoard={false}
             onCellClick={handleCellClick}
             isMyTurn={isMyTurn}
+            shots={shotsFired}
           />
         </BoardSection>
 
@@ -94,6 +97,7 @@ export default function SonarStrikeGame() {
             onDrop={handleShipDrop}
             isPlayerBoard={true}
             isValidPosition={isValidPosition}
+            shots={shotsReceived}
           />
         </BoardSection>
       </BoardsContainer>

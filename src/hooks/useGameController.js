@@ -293,7 +293,7 @@ export function useGameController() {
               return false;
             });
     
-            console.log("isHit", isHit);
+            console.log("isHit", x, y, isHit);
             
             // Add shot to received shots
             setShotsReceived(prev => new Set(prev).add(`${x},${y}`));
@@ -410,6 +410,8 @@ export function useGameController() {
     updateShipPosition,
     isValidPosition: (ship, row, col, isVertical, movingShipId) => 
       isValidPosition(ships, ship, row, col, isVertical, movingShipId),
-    isMyTurn
+    isMyTurn,
+    shotsFired,
+    shotsReceived,
   };
 }

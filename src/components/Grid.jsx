@@ -21,12 +21,22 @@ const Cell = styled.div`
   height: 30px;
   background-color: ${props => {
     if (props.$isHighlighted) return '#90EE90';
+    if (props.$isHit) return '#FF6B6B';
+    if (props.$isMiss) return '#A8D8EA';
     if (props.content === 'ship') return '#EEE';
-    if (props.content === 'hit') return '#FF6B6B';
-    if (props.content === 'miss') return '#A8D8EA';
     return '#fff';
   }};
   outline: 1px solid #ccc;
+  
+  &::after {
+    content: ${props => props.$isHit ? "'✶'" : props.$isMiss ? "'•'" : ''};
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-size: 20px;
+    color: ${props => props.$isHit ? '#800000' : '#000'};
+  }
 `;
 
 const Grid = memo(function Grid({
@@ -36,7 +46,8 @@ const Grid = memo(function Grid({
   isPlayerBoard,
   isValidPosition,
   onCellClick,
-  isMyTurn
+  isMyTurn,
+  shots
 }) {
   const [highlightedCells, setHighlightedCells] = useState([]);
   const [draggedShipId, setDraggedShipId] = useState(null);
@@ -115,6 +126,28 @@ const Grid = memo(function Grid({
     setDragOffset({ x: 0, y: 0 });
   }, [isPlayerBoard, onDrop, getGridPosition, ships]);
   
+  const isCellShot = useCallback((row, col) => {
+    return shots && shots.has(`${col},${row}`);
+  }, [shots]);
+
+  const getCellState = useCallback((row, col, cellContent) => {
+    if (!isCellShot(row, col)) return { isHit: false, isMiss: false };
+    
+    if (isPlayerBoard) {
+      // On player's board, a hit is when there's a ship and it's been shot
+      return {
+        isHit: cellContent === 'ship',
+        isMiss: cellContent !== 'ship'
+      };
+    } else {
+      // On opponent's board, we need to check the opponent's board state
+      return {
+        isHit: cellContent === 'ship',
+        isMiss: cellContent !== 'ship'
+      };
+    }
+  }, [isPlayerBoard, isCellShot]);
+  
   return (
     <GridContainer
       onDragOver={handleDragOver}
@@ -124,14 +157,19 @@ const Grid = memo(function Grid({
       $isMyTurn={isMyTurn}
     >
       {Array.isArray(board) && board.map((row, i) =>
-        Array.isArray(row) && row.map((cell, j) => (
-          <Cell
-            key={`${i}-${j}`}
-            content={cell}
-            $isHighlighted={highlightedCells.some(cell => cell.row === i && cell.col === j)}
-            onClick={() => handleCellClick(i, j)}
-          />
-        ))
+        Array.isArray(row) && row.map((cell, j) => {
+          const { isHit, isMiss } = getCellState(i, j, cell);
+          return (
+            <Cell
+              key={`${i}-${j}`}
+              content={cell}
+              $isHighlighted={highlightedCells.some(cell => cell.row === i && cell.col === j)}
+              $isHit={isHit}
+              $isMiss={isMiss}
+              onClick={() => handleCellClick(i, j)}
+            />
+          );
+        })
       )}
       {isPlayerBoard && ships.map(ship => (
         ship.position && 

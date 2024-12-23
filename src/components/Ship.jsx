@@ -4,7 +4,7 @@ import styled from 'styled-components';
 const ShipContainer = styled.div`
   width: ${props => props.$isVertical ? 30 : (props.$length * 30) + props.$length - 1}px;
   height: ${props => props.$isVertical ? (props.$length * 30) + props.$length - 1 : 30}px;
-  background-color: red; // Changed for debugging
+  background-color: rgba(255,0,0,0.5);
   border-radius: 4px;
   position: absolute;
   top: ${props => props.$top + 1}px; // Add 1px for grid padding
